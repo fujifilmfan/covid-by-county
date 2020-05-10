@@ -15,7 +15,7 @@ Estimates Geography File: Vintage 2018,Unnamed: 1,Unnamed: 2,Unnamed: 3,Unnamed:
 Internet Release Date: May 2019,,,,,,
 ,,,,,,
 ```
-# First file with FIPS: 60th in the list
+First file with FIPS: 60th in the list
 
 ### Saving images
 * [Static Image Export in Python](https://plotly.com/python/static-image-export/)
@@ -76,3 +76,27 @@ layout.title.xref='paper' refers to "the width of the plotting area only", i.e.,
 ## Watchdog
 * [Watching a directory for file changes with Python](http://brunorocha.org/python/watching-a-directory-for-file-changes-with-python.html)
 * [How to create a watchdog in Python to look for filesystem changes](http://thepythoncorner.com/dev/how-to-create-a-watchdog-in-python-to-look-for-filesystem-changes/)
+
+## Speed
+---
+
+### Downloading files
+
+Downloading files is I/O-Bound, so using `asyncio` seemed a good choice for obtaining some easy speed gains.  I tested 
+this in late April or early May (90+ files) by measuring the time required to download all available files.
+
+Summary of results (all trials in seconds, ascending order)
+
+Method | Trial 1 | Trial 2 | Trial 3 | Trial 4 | Trial 5 | Trial 6
+------ | ------- | ------- | ------- | ------- | ------- | -------
+synchronous | 23 | 25 | 26 | 34 | 35 | 
+asynchronous, using `asyncio` | 2 | 4 | 4 | 5 | 12 | 40
+asynchronous, using `asyncio` and `aiofiles` to write files | 3 | 4 | 5 | 11 | | 
+
+### Future optimizations
+
+Assume a file of the form MM-DD-YYYY.csv is available and download it and all previous ones (to 01-22-2020) without
+retrieving the index first.
+
+updates on https://github.com/CSSEGISandData/COVID-19/tree/master/csse_covid_19_data/csse_covid_19_daily_reports
+ <time-ago datetime="2020-04-16T16:09:49Z" class="no-wrap" title="Apr 16, 2020, 9:09 AM PDT">23 days ago</time-ago>
