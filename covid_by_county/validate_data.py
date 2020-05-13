@@ -112,7 +112,6 @@ def validate_data(df):
         _remove_non_us_rows(df)
         _remove_unnecessary_columns(df)
         _remove_unrecognized_fips(df)
-        df.dropna(inplace=True)
         _left_pad_fips(df)
         _create_log_bins(df)
 
