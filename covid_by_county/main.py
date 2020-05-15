@@ -46,17 +46,6 @@ def return_parsed_args(args):
 
     parser = argparse.ArgumentParser(description='')
 
-    # parser.add_argument('-d', '--download', type=str,
-    #                     help="""Download available CSV files.""")
-    # parser.add_argument('-s', '--schedule', type=str, help="""Schedule
-    #                     slack_munki to post to Slack at the same time
-    #                     every day.  Enter the time in HH:MM format.""")
-    # parser.add_argument('-t', '--threshold', type=int, help="""Use
-    #                     this argument to override the default percent
-    #                     utilization value of 80(%%).  Set it to 0 to
-    #                     see all results.  This works with slack_munki.py
-    #                      whether the --schedule argument is used.""")
-
     return parser.parse_args(args)
 
 
@@ -71,51 +60,32 @@ async def main(args):
     file_handler = FileHandler(start_date=(2020, 3, 27))
     await file_handler.download_new_files(replace_existing=False)
 
-    # data_obj_by_date = {}
-    # for file in file_handler.raw_data_paths:
-    #     data_obj_by_date[file.stem] = {'data_obj': DataObject(file)}
-
-    # data_objs = []
-    # for file in file_handler.raw_data_paths:
-    #     data_objs.append(DataObject(file))
-
     start_time = time.time()
     data_array = [(DataObject(file), file_handler.png_dir) for file in
                   file_handler.raw_data_paths]
     pool_pids = []
-    procs = []
+    all_procs = []
     try:
         with multiprocessing.Pool() as pool:
             pool.starmap(save_figures, data_array)
 
-            # pool_pids = []
-            for fork in pool._pool:
-                pool_pids.append(fork.pid)
-            try:
-                for pid in pool_pids:
-                    parent = psutil.Process(pid)
-                    children = parent.children(recursive=True)
-                    procs.extend(children)
-                for proc in procs:
-                    pool_pids.append(proc.pid)
-            except NoSuchProcess:
-                pass
-            print(pool_pids)
+            all_procs = create_process_list(pool)
+            # print(all_procs)
 
             # pool.close()
             # pool.terminate()
             # pool.join()
-            # for pid in pool_pids:
-            #     kill_proc_tree(pid)
-                # print(pid)
-                # os.kill(pid, 9)
             # time.sleep(21)
+
     except ValueError as e:
         print(e)
+        all_procs = create_process_list(pool)
     finally:
         # print('smile')
-        for pid in pool_pids:
-            kill_proc_tree(pid)
+        # all_procs = create_process_list(pool)
+        print(all_procs)
+        kill_procs(all_procs)
+
     # SYNCHRONOUS:
     # data_array = [DataObject(file) for file in file_handler.raw_data_paths]
     # for datum in data_array:
@@ -125,24 +95,30 @@ async def main(args):
     # time.sleep(20)
 
 
-def kill_proc_tree(pid, sig=signal.SIGTERM, include_parent=True,
-                   timeout=1, on_terminate=None):
-    """Kill a process tree (including grandchildren) with signal
-    "sig" and return a (gone, still_alive) tuple.
-    "on_terminate", if specified, is a callabck function which is
-    called as soon as a child terminates.
-    """
-    assert pid != os.getpid(), "won't kill myself"
-    try:
-        parent = psutil.Process(pid)
-        children = parent.children(recursive=True)
-        if include_parent:
-            children.append(parent)
-        for p in children:
-            p.send_signal(sig)
-        psutil.wait_procs(children, timeout=timeout)
-    except NoSuchProcess:
-        pass
+def create_process_list(pool):
+    pids = []
+    proc_list = []
+    for fork in pool._pool:
+        assert fork.pid != os.getpid()
+        pids.append(fork.pid)
+    for pid in pids:
+        try:
+            parent = psutil.Process(pid)
+            children = parent.children(recursive=True)
+            proc_list.append(parent)
+            proc_list.extend(children)
+        except NoSuchProcess:
+            continue
+    return proc_list
+
+
+def kill_procs(proc_list, sig=signal.SIGTERM, timeout=1):
+    for proc in proc_list:
+        try:
+            proc.send_signal(sig)
+            # psutil.wait_procs(proc, timeout=timeout)
+        except NoSuchProcess:
+            continue
 
 
 if __name__ == '__main__':
