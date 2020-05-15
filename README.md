@@ -100,3 +100,16 @@ retrieving the index first.
 
 updates on https://github.com/CSSEGISandData/COVID-19/tree/master/csse_covid_19_data/csse_covid_19_daily_reports
  <time-ago datetime="2020-04-16T16:09:49Z" class="no-wrap" title="Apr 16, 2020, 9:09 AM PDT">23 days ago</time-ago>
+ 
+ I tried the npm electron first
+ then
+ 
+ $ conda install -c plotly plotly-orca
+ https://github.com/plotly/orca/issues/269
+ $ sudo codesign --force --deep --sign - /Users/acetone/miniconda3/lib/orca.app
+ $ sudo codesign --force --deep --sign - /Users/acetone/miniconda3/pkgs/plotly-orca-1.3.1-1/lib/orca.app
+ 
+ 1 file single processor: 10.111267805099487 seconds
+ 53 files single processor: 252.75397300720215 seconds
+ 1 file multiple processors: 9.606199026107788 seconds
+ 53 files multiple processors: 

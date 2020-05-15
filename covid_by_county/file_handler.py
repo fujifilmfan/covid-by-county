@@ -24,6 +24,7 @@ class FileHandler:
             png_dir=config.png_dir,
             start_date=config.start_date):
         self.raw_data_dir = raw_data_dir
+        self.raw_data_paths = self.raw_data_dir.iterdir()
         self.processed_data_dir = processed_data_dir
         self.reference_data_dir = reference_data_dir
         self.png_dir = png_dir
@@ -67,7 +68,7 @@ class FileHandler:
                         file.write(data)
 
     async def download_new_files(
-            self, download_file_list=True, replace_existing=False):
+            self, download_file_list=False, replace_existing=False):
         """
 
         :param download_file_list:
@@ -81,7 +82,7 @@ class FileHandler:
         files_to_download = []
 
         if replace_existing is True:
-            files_to_download = await self._files_to_download()
+            files_to_download = await self._create_file_list()
         elif download_file_list is True:
             available_files = set(await self._files_to_download())
         else:
@@ -116,6 +117,7 @@ class FileHandler:
         except (ConnectTimeout, ConnectionError) as e:
             print(e, "\n Unable to fetch updated data.  "
                      "Proceeding with existing data.")
+            files = await self._create_file_list()
 
         return files
 

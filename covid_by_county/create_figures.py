@@ -1,11 +1,17 @@
 #!/usr/bin/env python
 
 import json
+from pathlib import Path
+from functools import reduce
 
 import plotly.graph_objects as go
 
+import covid_by_county.config as app_config
 
-def create_figure(df, date, geodata):
+geodata = app_config.configuration.geodata
+
+
+def _create_figure(df, date):
 
     with open(geodata) as f:
         counties = json.load(f)
@@ -82,3 +88,25 @@ def create_figure(df, date, geodata):
     fig.layout.template = None
 
     return fig
+
+
+def show_figures(dataframe_dict):
+    for date, df in dataframe_dict.items():
+        if df is not None:
+            figure = _create_figure(df, date)
+            if figure is not None:
+                figure.show()
+
+
+def save_figures(data_obj, png_dir):
+
+    date = data_obj.date
+    dataframe = data_obj.validated_data
+
+    file_name = ''.join([date, '.png'])
+    image_path = Path.joinpath(png_dir, file_name)
+
+    if dataframe is not None and not image_path.is_file():
+        df = dataframe
+        figure = _create_figure(df, date)
+        figure.write_image(str(image_path))
