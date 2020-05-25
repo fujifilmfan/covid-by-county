@@ -18,6 +18,8 @@ _REFERENCE_DATA_DIR = Path.joinpath(_PACKAGE_DIR, 'reference_data')
 _GEODATA = str(Path.joinpath(_REFERENCE_DATA_DIR, 'geojson-counties-fips.json'))
 _PNG_DIR = Path.joinpath(_PACKAGE_DIR, 'png')
 _START_DATE = (2020, 1, 22)
+_FIGURE_CREATOR = Path.joinpath(
+    _PACKAGE_DIR, 'covid_by_county/create_figures.py')
 
 
 class Config:
@@ -33,6 +35,7 @@ class Config:
         self.source_data_index_url = self._set_source_data_index_url()
         self.source_data_download_url = self._set_source_data_download_url()
         self.start_date = _START_DATE
+        self.figure_creator = _FIGURE_CREATOR
 
         self.version = self._get_version()
 

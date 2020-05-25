@@ -1,24 +1,17 @@
 #!/usr/bin/env python
 
+import argparse
 import asyncio
 import json
-from pathlib import Path
-from functools import reduce
-import subprocess
 
 import plotly.graph_objects as go
-import plotly.io.orca
 
 import covid_by_county.config as app_config
-from covid_by_county.data_handler import DataObject
 
 geodata = app_config.configuration.geodata
-config = app_config.configuration
-orca_config = plotly.io.orca.config
-orca_config.timeout = 20
 
 
-def _create_figure(df, date):
+def create_figure(df, date):
 
     with open(geodata) as f:
         counties = json.load(f)
@@ -97,47 +90,24 @@ def _create_figure(df, date):
     return fig
 
 
-def show_figures(dataframe_dict):
-    for date, df in dataframe_dict.items():
-        if df is not None:
-            figure = _create_figure(df, date)
-            if figure is not None:
-                figure.show()
+def return_parsed_args(args):
+    """Parse and define command line arguments.
 
+    :param args: LIST; like ['-t 40']
+    :return: OBJ; Namespace object looking something like this:
+        Namespace(post=False, schedule=None, threshold=40)
+    """
 
-def save_figures(png_dir, data_file):  #data_obj, png_dir):
-    # data_obj, png_dir = mytuple
-    data_file_path = Path(data_file)
-    png_dir_path = Path(png_dir)
-    try:
-        data_obj = DataObject(data_file_path)
-    except AttributeError:
-        print(f'{data_file_path} must be a Path object.')
-    else:
-        date = data_obj.date
-        dataframe = data_obj.validated_data
-
-        file_name = ''.join([date, '.png'])
-        image_path = Path.joinpath(png_dir_path, file_name)
-
-        if dataframe is not None and not image_path.is_file():
-            df = dataframe
-            figure = _create_figure(df, date)
-            figure.write_image(str(image_path))
+    parser = argparse.ArgumentParser(description='')
+    parser.add_argument('df')
+    parser.add_argument('date')
+    return parser.parse_args(args)
 
 
 async def main(args):
-    png_dir = args[0]
-    data_file = args[1]
-    # print(png_dir)
-    print('Before save_figures()')
-    save_figures(png_dir, data_file)
-    print('After save_figures()')
+    print(args)
+    return create_figure(args.df, args.date)
 
 if __name__ == '__main__':
     import sys
-    try:
-        print('Executing create_figures.run()')
-        asyncio.run(main(sys.argv[1:]))
-    except ValueError as e:
-        print(e)
+    asyncio.run(main(sys.argv[1:]))

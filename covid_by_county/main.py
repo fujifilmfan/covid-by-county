@@ -2,28 +2,18 @@
 
 import argparse
 import asyncio
-from datetime import date, datetime, timedelta
-import json
+from functools import partial
 import multiprocessing
+import multiprocessing.dummy
 import os
+from pathlib import Path
 import psutil
 from psutil import NoSuchProcess
 import signal
-from pathlib import Path
+import subprocess
 import time
 
-import aiohttp
-from bs4 import BeautifulSoup
-import numpy as np
-import pandas as pd
-import _plotly_utils.colors.sequential
-import plotly.express as px
 import plotly.io.orca
-import plotly.graph_objects as go
-import plotly.figure_factory as ff
-import requests
-from requests.exceptions import ConnectTimeout, ConnectionError
-import wget
 
 import covid_by_county.config as app_config
 from covid_by_county.data_handler import DataObject
@@ -31,8 +21,8 @@ from covid_by_county.create_figures import save_figures, show_figures
 from covid_by_county.file_handler import FileHandler
 
 
-config = app_config.configuration
-orca_config = plotly.io.orca.config
+# config = app_config.configuration
+# orca_config = plotly.io.orca.config
 # orca_config.timeout = 20
 
 
@@ -49,6 +39,13 @@ def return_parsed_args(args):
     return parser.parse_args(args)
 
 
+def intermediate_func(png_dir, figure_creator, data_file):
+    # args = [figure_creator, png_dir, data_file]
+    print('working on' + str(data_file))
+    subprocess.call(['python', figure_creator, png_dir, data_file])
+    # subprocess.check_output(args)
+
+
 async def main(args):
     """
 
@@ -61,30 +58,45 @@ async def main(args):
     await file_handler.download_new_files(replace_existing=False)
 
     start_time = time.time()
-    data_array = [(DataObject(file), file_handler.png_dir) for file in
-                  file_handler.raw_data_paths]
+    # data_array = [(DataObject(file), file_handler.png_dir) for file in
+    #               file_handler.raw_data_paths]
+    # data_files = [str(file) for file in file_handler.raw_data_paths]
+    data_files = [
+        str(file) for file in file_handler.raw_data_paths if not
+        file_handler.file_exists(file, '.png')]
     pool_pids = []
     all_procs = []
+
+    # date = data_obj.date
+    # dataframe = data_obj.validated_data
+    # file_name = ''.join([date, '.png'])
+    # image_path = Path.joinpath(png_dir_path, file_name)
+
+    # for data in data_array:
+    # use subprocess to launch a single invocation of the actual worker
+    # script with the arguments
+
     try:
-        with multiprocessing.Pool() as pool:
-            pool.starmap(save_figures, data_array)
+        with multiprocessing.Pool(8) as pool:
+            f = partial(
+                intermediate_func,
+                str(file_handler.png_dir),
+                str(file_handler.figure_creator))
 
-            all_procs = create_process_list(pool)
-            # print(all_procs)
+            print('Before pool.map()')
+            pool.map(f, data_files)
+            print('After pool.map() and before pool.close()')
 
-            # pool.close()
-            # pool.terminate()
-            # pool.join()
+            pool.close()  # I'm done with the pool
+            print('After pool.close() and before pool.join()')
+            pool.join()  # Don't move on till it's finished
+            print('After pool.join()')
             # time.sleep(21)
 
     except ValueError as e:
         print(e)
-        all_procs = create_process_list(pool)
     finally:
-        # print('smile')
-        # all_procs = create_process_list(pool)
-        print(all_procs)
-        kill_procs(all_procs)
+        pass
 
     # SYNCHRONOUS:
     # data_array = [DataObject(file) for file in file_handler.raw_data_paths]

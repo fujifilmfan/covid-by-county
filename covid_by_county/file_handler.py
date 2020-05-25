@@ -33,6 +33,7 @@ class FileHandler:
         self.local_raw_csvs = self._list_local_raw_csvs()
         self.index_url = config.source_data_index_url
         self.download_url = config.source_data_download_url
+        self.figure_creator = config.figure_creator
 
     def _create_dirs(self):
         """Create default data and image directories."""
@@ -101,6 +102,14 @@ class FileHandler:
                     session, download_path, file_path))
                 tasks.append(task)
             await asyncio.gather(*tasks, return_exceptions=True)
+
+    def file_exists(self, file, extension):
+        file_stem = file.stem
+        image_name = ''.join([file_stem, extension])
+        image_path = Path.joinpath(self.png_dir, image_name)
+        if image_path.is_file():
+            return True
+        return False
 
     async def _files_to_download(self):
         files = []
