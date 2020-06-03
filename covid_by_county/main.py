@@ -4,26 +4,15 @@ import argparse
 import asyncio
 from functools import partial
 import multiprocessing
-import multiprocessing.dummy
 import os
-from pathlib import Path
 import psutil
 from psutil import NoSuchProcess
 import signal
 import subprocess
 import time
 
-import plotly.io.orca
-
-import covid_by_county.config as app_config
-from covid_by_county.data_handler import DataObject
 from covid_by_county.create_figures import save_figures, show_figures
 from covid_by_county.file_handler import FileHandler
-
-
-# config = app_config.configuration
-# orca_config = plotly.io.orca.config
-# orca_config.timeout = 20
 
 
 def return_parsed_args(args):
@@ -35,76 +24,125 @@ def return_parsed_args(args):
     """
 
     parser = argparse.ArgumentParser(description='')
-
+    parser.add_argument('-d', '--download_new', type=bool, default=True,
+                        help="""Download CSV files that exist in the upstream 
+                        repository but not in the local data directory. When 
+                        False, no files will be downloaded.
+                        See also '--replace_existing'.
+                        """)
+    parser.add_argument('-p', '--process_handling', type=str, default='auto',
+                        help="""Options: 'auto' (default) or 'manual'.
+                        Since Plotly does not reliably kill Orca processes
+                        spawned when multiprocessing is used, the 'auto' 
+                        option utilizes the OS to take care of it.
+                        The 'manual' option, in which the application keeps 
+                        track of the processes and kills them when finished, 
+                        runs about twice as fast as the 'auto' option but is 
+                        considered higher risk (due simply to my own 
+                        inexperience managing process pools manually).
+                        """)
+    parser.add_argument('--processors', type=int, default=8, help="""Set the 
+                        number of processors to use for image creation.
+                        """)
+    parser.add_argument('-r', '--replace_existing', type=bool, default=False,
+                        help="""When False, only files that don't exist 
+                        locally will be downloaded from the upstream repo and 
+                        written to the local data directory. When True, all 
+                        local files will be overwritten with all available 
+                        files from the upstream repo.
+                        See also '--download_new'.
+                        """)
+    parser.add_argument('-s', '--start_date', type=str, help="""
+                        Use this flag to only download data files that are more 
+                        recent than the start date (inclusive).
+                        Formats: yyyy-m-d, like '2020-3-27'.  You can also use 
+                        leading zeros for the month and day if you prefer.
+                        """)
     return parser.parse_args(args)
 
 
 def intermediate_func(png_dir, figure_creator, data_file):
-    # args = [figure_creator, png_dir, data_file]
-    print('working on' + str(data_file))
+
     subprocess.call(['python', figure_creator, png_dir, data_file])
-    # subprocess.check_output(args)
 
 
 async def main(args):
     """
 
-    :param args: LIST; like ['-t 40']
+    :param args: LIST; like ['-p manual']
     :return: None
     """
-    parsed_args = return_parsed_args(args)
+    cli_args = return_parsed_args(args)
+    download_new = cli_args.download_new
+    num_processors = cli_args.processors
+    replace_existing = cli_args.replace_existing
 
-    file_handler = FileHandler(start_date=(2020, 3, 27))
-    await file_handler.download_new_files(replace_existing=False)
+    start_date = None
+    if cli_args.start_date:
+        year, month, day = cli_args.start_date.split('-')
+        try:
+            year = int(year)
+            month = int(month)
+            day = int(day)
+        except (UnboundLocalError, ValueError) as e:
+            print(e, "Year, month, and day must by hyphen-separated integers.")
+        else:
+            start_date = (year, month, day)
+
+    if start_date:
+        file_handler = FileHandler(start_date=start_date)
+    else:
+        file_handler = FileHandler()
+
+    if download_new is True:
+        await file_handler.download_new_files(replace_existing=replace_existing)
 
     start_time = time.time()
-    # data_array = [(DataObject(file), file_handler.png_dir) for file in
-    #               file_handler.raw_data_paths]
-    # data_files = [str(file) for file in file_handler.raw_data_paths]
+
     data_files = [
-        str(file) for file in file_handler.raw_data_paths if not
-        file_handler.file_exists(file, '.png')]
-    pool_pids = []
-    all_procs = []
+        str(file) for file in file_handler.raw_data_paths
+        if not file_handler.file_exists(file, '.png')
+    ]
 
-    # date = data_obj.date
-    # dataframe = data_obj.validated_data
-    # file_name = ''.join([date, '.png'])
-    # image_path = Path.joinpath(png_dir_path, file_name)
+    if cli_args.process_handling.lower() == 'auto':
+        try:
+            with multiprocessing.Pool(num_processors) as pool:
+                f = partial(
+                    intermediate_func,
+                    str(file_handler.png_dir),
+                    str(file_handler.figure_creator))
 
-    # for data in data_array:
-    # use subprocess to launch a single invocation of the actual worker
-    # script with the arguments
+                pool.map(f, data_files)
+                pool.close()  # I'm done with the pool
+                pool.join()  # Don't move on till it's finished
 
-    try:
-        with multiprocessing.Pool(8) as pool:
-            f = partial(
-                intermediate_func,
-                str(file_handler.png_dir),
-                str(file_handler.figure_creator))
+        except ValueError as e:
+            print(e)
 
-            print('Before pool.map()')
-            pool.map(f, data_files)
-            print('After pool.map() and before pool.close()')
+    elif cli_args.process_handling.lower() == 'manual':
+        all_procs = []
+        try:
+            with multiprocessing.Pool(num_processors) as pool:
+                f = partial(
+                    save_figures,
+                    str(file_handler.png_dir)
+                )
+                pool.map(f, data_files)
 
-            pool.close()  # I'm done with the pool
-            print('After pool.close() and before pool.join()')
-            pool.join()  # Don't move on till it's finished
-            print('After pool.join()')
-            # time.sleep(21)
+                all_procs = create_process_list(pool)
 
-    except ValueError as e:
-        print(e)
-    finally:
-        pass
+        except ValueError as e:
+            print(e)
+            all_procs = create_process_list(pool)
+        finally:
+            kill_procs(all_procs)
 
-    # SYNCHRONOUS:
-    # data_array = [DataObject(file) for file in file_handler.raw_data_paths]
-    # for datum in data_array:
-    #     save_figures(datum, file_handler.png_dir)
+    else:
+        print(f"You entered {cli_args.process_handling} for the '-p' option. "
+              f"Allowable options are 'auto' and 'manual' (case insensitive).")
+
     duration = time.time() - start_time
     print(f"Images written in {duration} seconds.")
-    # time.sleep(20)
 
 
 def create_process_list(pool):

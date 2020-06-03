@@ -115,3 +115,4 @@ updates on https://github.com/CSSEGISandData/COVID-19/tree/master/csse_covid_19_
  manual: 53 files multiple processors: 92 s
  subprocess: 59 files multiple processors: 160.9226689338684 s
  manual: 56 files multiple processors: 195.0839967727661 s
+ manual: 59 files multiple processors: 85.35867428779602 s
