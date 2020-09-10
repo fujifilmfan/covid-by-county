@@ -93,15 +93,16 @@ async def main(args):
         file_handler = FileHandler(start_date=start_date)
     else:
         file_handler = FileHandler()
+    file_handler.create_data_dirs()
 
     if download_new is True:
-        await file_handler.download_new_files(replace_existing=replace_existing)
+        await file_handler.download_files(replace_existing=replace_existing)
 
     start_time = time.time()
 
     data_files = [
         str(file) for file in file_handler.raw_data_paths
-        if not file_handler.file_exists(file, '.png')
+        if not file_handler.file_exists(file_handler.png_dir, file, '.png')
     ]
 
     if cli_args.process_handling.lower() == 'auto':
