@@ -129,6 +129,17 @@ def mock_find_local_raw_csvs(mocker):
 
 
 @pytest.fixture
+def mock_get_set_diff(mocker):
+    """Mock file_handler.FileHandler._get_set_diff."""
+
+    def _get_set_diff(module, return_value):
+        mock_func = mocker.patch(f'{module}.FileHandler._get_set_diff')
+        mock_func.return_value = return_value
+
+    return _get_set_diff
+
+
+@pytest.fixture
 def mock_list_files_to_download(mocker):
     """Mock file_handler._list_files_to_download."""
 

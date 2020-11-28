@@ -1,1 +1,7 @@
+generators.py
+test.csv
+test.py
+watch_for_changes.py
+
 png/*
+raw_data/*

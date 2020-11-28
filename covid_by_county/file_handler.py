@@ -185,6 +185,10 @@ class FileHandler:
     async def _list_files_to_download(self, replace_existing):
         """Generate a list of files to download.
 
+        If replace_existing is True, download all possible files.
+        Otherwise, limit the download list to those not already
+        existing locally.
+
         :param replace_existing: BOOL; if True, overwrite local files
         :return: LIST; file names to download
         """

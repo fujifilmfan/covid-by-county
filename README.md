@@ -1,3 +1,26 @@
+## Project Set Up
+---
+I'm using Poetry for package and venv management and pyenv for python version management.  
+Since I was already using Poetry (with `virtualenv`), I didn't need to run `poetry init` when moving to venv.  
+* `$ poetry install --no-root` installed Python 3.7.8 into `.venv`.
+   * I have Python 3.7.8 set as my global Python version (`$ pyenv global 3.7.8`).
+   * If I wanted a different version, I think I could do something like `pyenv local 3.8.1` assuming that is installed.
+* `$ source .venv/bin/activate` (so I don't need to use `poetry run`)
+
+More details: [Definitive guide to python on Mac OSX](
+https://medium.com/@briantorresgil/definitive-guide-to-python-on-mac-osx-65acd8d969d0) 
+
+## Running tests
+---
+
+### Virtual environment activated
+* `$ pytest` to run all of the tests in the module (add `-q` or `-v` for quiet or verbose output, respectively)
+* `$ pytest -k PATTERN` to run a test file or one test within the file (I use this when I'm writing new tests)
+* `$ pytest --cov-report=term-missing --cov=covid_by_county tests/` to see a coverage report
+
+### Virtual environment not activated
+* Prefix each of the above commands with `poetry run`.
+
 ## References
 ---
 

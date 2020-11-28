@@ -102,7 +102,8 @@ async def main(args):
 
     data_files = [
         str(file) for file in file_handler.raw_data_paths
-        if not file_handler.file_exists(file_handler.png_dir, file, '.png')
+        if not await file_handler.file_exists(file_handler.png_dir, file,
+                                              '.png')
     ]
 
     if cli_args.process_handling.lower() == 'auto':

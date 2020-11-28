@@ -214,18 +214,56 @@ async def test_file_exists(file, expected):
 
 
 @pytest.mark.parametrize('superset, existing_set, expected', [
-    (set('a, b, c'), set('a, c'), ['b']),
-    (set('a, b'), set('a, b, c'), []),
-    (set('a, b, c'), None, []),
+    (set('abc'), set('ac'), ['b']),
+    (set('ab'), set('abc'), []),
+    (set('abc'), None, []),
     (None, None, []),
 ])
 def test_get_set_diff(superset, existing_set, expected):
+    """Test file_handler._get_set_diff.
+
+    :param superset: SET; represents possible files available for
+        download
+    :param existing_set: SET; represents files already on disk
+    :param expected: LIST; items in superset not in existing set
+    :return: None
+    """
 
     # Arrange
     handler = file_handler.FileHandler()
 
     # Act
     actual = handler._get_set_diff(superset, existing_set)
+
+    # Assert
+    assert actual == expected
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('possible, bool_, expected', [
+    (sorted(set('abc')), True, ['a', 'b', 'c']),
+    (sorted(set('abc')), False, ['a', 'b', 'c']),
+])
+async def test_list_files_to_download(
+        possible, bool_, expected, mock_create_file_set, mock_get_set_diff):
+    """Test _list_files_to_download.
+
+    :param possible: SET; represents possible files available for
+        download
+    :param bool_: BOOL; determines whether to replace existing files
+    :param expected: LIST; represents items to download
+    :param mock_create_file_set: OBJ; pytest fixture
+    :param mock_get_set_diff: OBJ; pytest fixture
+    :return: None
+    """
+
+    # Arrange
+    mock_create_file_set(_MODULE, possible)
+    mock_get_set_diff(_MODULE, expected)
+    handler = file_handler.FileHandler()
+
+    # Act
+    actual = await handler._list_files_to_download(bool_)
 
     # Assert
     assert actual == expected
