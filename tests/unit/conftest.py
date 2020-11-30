@@ -3,6 +3,9 @@
 from asyncio import Future, Task
 import pytest
 
+import covid_by_county.data_handler as data_handler
+from tests.unit.fixtures import data_handler_data
+
 
 # ================================================
 #     Helpers
@@ -49,6 +52,79 @@ def patch_object(mocker):
             mock_func.return_value = return_value
 
     return _object
+
+
+# ================================================
+#     data_handler.py fixtures
+# ================================================
+@pytest.fixture
+def data_obj(mock_validate_file_data):
+    mock_validate_file_data('covid_by_county.data_handler')
+    yield data_handler.DataObject(data_handler_data.sample_file)
+
+
+# @pytest.fixture(scope='function')
+# def get_neccessarycol_df():
+#     yield data_handler_data.neccessarycol_df
+
+
+@pytest.fixture
+def mock_validate_file_data(mocker):
+    """Mock data_handler.DataObject._validate_file_data."""
+
+    def _validate_file_data(module, return_value=None):
+        mock_func = mocker.patch(f'{module}.DataObject._validate_file_data')
+        mock_func.return_value = return_value
+
+    return _validate_file_data
+
+
+@pytest.fixture
+def mock_add_date_column(mocker):
+    def _add_date_column(module):
+        mocker.patch(f'{module}.DataObject._add_date_column')
+
+    return _add_date_column
+
+
+@pytest.fixture
+def mock_create_log_bins(mocker):
+    def _create_log_bins(module):
+        mocker.patch(f'{module}.DataObject._create_log_bins')
+
+    return _create_log_bins
+
+
+@pytest.fixture
+def mock_left_pad_fips(mocker):
+    def _left_pad_fips(module):
+        mocker.patch(f'{module}.DataObject._left_pad_fips')
+
+    return _left_pad_fips
+
+
+@pytest.fixture
+def mock_remove_non_us_rows(mocker):
+    def _remove_non_us_rows(module):
+        mocker.patch(f'{module}.DataObject._remove_non_us_rows')
+
+    return _remove_non_us_rows
+
+
+@pytest.fixture
+def mock_remove_unnecessary_columns(mocker):
+    def _remove_unnecessary_columns(module):
+        mocker.patch(f'{module}.DataObject._remove_unnecessary_columns')
+
+    return _remove_unnecessary_columns
+
+
+@pytest.fixture
+def mock_remove_unrecognized_fips(mocker):
+    def _remove_unrecognized_fips(module):
+        mocker.patch(f'{module}.DataObject._remove_unrecognized_fips')
+
+    return _remove_unrecognized_fips
 
 
 # ================================================
@@ -141,7 +217,7 @@ def mock_get_set_diff(mocker):
 
 @pytest.fixture
 def mock_list_files_to_download(mocker):
-    """Mock file_handler._list_files_to_download."""
+    """Mock file_handler.FileHandler._list_files_to_download."""
 
     def _list_files_to_download(module, return_value):
         mock_func = mocker.patch(

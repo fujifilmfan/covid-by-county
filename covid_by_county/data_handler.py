@@ -13,20 +13,15 @@ class DataObject:
 
         self.date = file.stem
         self.file_path = file
-        self.validated_data = self._validate_file_data()
+        self.validated_data = None
+        self._validate_file_data()
 
     def _validate_file_data(self):
         """Run all data-validation functions on the input dataframe."""
-        try:
-            dataframe = pd.read_csv(self.file_path)
-        except Exception as e:
-            raise e
+        dataframe = self._get_dataframe_from_file()
 
-        dataframe.dropna(inplace=True)
-        self._make_column_names_lowercase(dataframe)
-        columns = dataframe.columns
-
-        if 'fips' in columns:
+        if 'fips' in dataframe.columns:
+            dataframe.dropna(inplace=True)
             self._remove_non_us_rows(dataframe)
             self._remove_unnecessary_columns(dataframe)
             self._remove_unrecognized_fips(dataframe)
@@ -79,6 +74,14 @@ class DataObject:
 
         return df
 
+    def _get_dataframe_from_file(self):
+        try:
+            dataframe = pd.read_csv(self.file_path)
+            self._make_column_names_lowercase(dataframe)
+            return dataframe
+        except Exception as e:
+            raise e
+
     @staticmethod
     def _left_pad_fips(df):
         """Make each fips five characters, with leading zeros if needed."""
@@ -89,6 +92,7 @@ class DataObject:
         df['fips'] = df['fips'].astype(str)
         # Add zeros to make fips 5 characters long:
         df['fips'] = df['fips'].str.zfill(5)
+
         return df
 
     @staticmethod

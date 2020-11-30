@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-from asyncio import Future
 from datetime import date, timedelta
 from pathlib import Path, PosixPath
 from unittest.mock import call
@@ -8,7 +7,6 @@ from unittest.mock import call
 import pytest
 from requests.exceptions import ConnectTimeout, ConnectionError
 
-import covid_by_county.config as config
 import covid_by_county.file_handler as file_handler
 from tests.unit.fixtures import file_handler_data
 
